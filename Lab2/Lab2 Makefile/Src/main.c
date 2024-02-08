@@ -73,10 +73,11 @@ int main(void)
 {
   SystemClock_Config();
 
-  volatile blue_count;
-
   RCC->AHBENR |= RCC_AHBENR_GPIOAEN;
   RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
+  RCC->APB2ENR |= RCC_APB2ENR_SYSCFGCOMPEN;
+
+  SYSCFG->EXTICR[0] &= ~((1 << 0)|(1 << 1) | (1 << 2));
 
   GPIOC -> MODER |= (1 << 12); // PIN 6 (RED)
 	GPIOC -> MODER |= (1 << 14); // PIN 7 (BLLUE)
@@ -97,6 +98,15 @@ int main(void)
 	GPIOC -> PUPDR &= ~((1 << 14)|(1 << 15));
 	GPIOC -> PUPDR &= ~((1 << 16)|(1 << 17));
 	GPIOC -> PUPDR &= ~((1 << 18)|(1 << 19));
+
+  // Setting input pin PA0
+  GPIOA -> MODER &= ~((1 << 0) | (1 << 1));
+	GPIOA -> OSPEEDR &= ~(1 << 0);
+	GPIOA -> PUPDR &= ~(1 << 0);
+	GPIOA -> PUPDR |= (1 << 1);
+
+  EXTI -> IMR |= (1 << 0); // Unmask interrupt generation
+  EXTI -> RTSR |= (1 << 0); // Rising edge trigger
 
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_SET); // Start PC9 high
 
