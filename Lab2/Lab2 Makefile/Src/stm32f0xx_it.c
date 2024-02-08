@@ -121,6 +121,7 @@ void PendSV_Handler(void)
 /**
   * @brief This function handles System tick timer.
   */
+volatile int count = 0;
 void SysTick_Handler(void)
 {
   /* USER CODE BEGIN SysTick_IRQn 0 */
@@ -128,8 +129,8 @@ void SysTick_Handler(void)
   /* USER CODE END SysTick_IRQn 0 */
   HAL_IncTick();
   /* USER CODE BEGIN SysTick_IRQn 1 */
-  volatile int count;
 
+  count++;
   if(count == 200) {
     GPIOC -> ODR ^= GPIO_ODR_7; 
     count = 0;
