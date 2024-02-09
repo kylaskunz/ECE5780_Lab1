@@ -127,6 +127,12 @@ int main(void)
 
 void EXTI0_1_IRQHandler(void) {
   GPIOC -> ODR ^= GPIO_ODR_8 | GPIO_ODR_9; // Toggle either orange or green on
+
+  // For part 2 of lab
+  volatile int i;
+  for(i = 0; i < 1500000; i++) {}
+  GPIOC -> ODR ^= GPIO_ODR_8 | GPIO_ODR_9; // Toggle either orange or green on
+
   EXTI -> PR |= (1 << 0); // Selected trigger request occured
 }
 
