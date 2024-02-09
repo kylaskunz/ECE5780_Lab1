@@ -113,6 +113,9 @@ int main(void)
   NVIC_EnableIRQ(EXTI0_1_IRQn);
   NVIC_SetPriority(EXTI0_1_IRQn, 1); // Set the EXTI priority to 1 (high-priority)
 
+  // Changing priority of SysTick for part 2
+  //NVIC_SetPriority(SysTick_IRQn, 2); // Set the SysTick priority to 2 (high-priority)
+
 
   // Set Green LED to high
   GPIOC -> ODR = GPIO_ODR_9;
@@ -129,11 +132,11 @@ void EXTI0_1_IRQHandler(void) {
   GPIOC -> ODR ^= GPIO_ODR_8 | GPIO_ODR_9; // Toggle either orange or green on
 
   // For part 2 of lab
-  volatile int i;
-  for(i = 0; i < 1500000; i++) {}
-  GPIOC -> ODR ^= GPIO_ODR_8 | GPIO_ODR_9; // Toggle either orange or green on
+  // volatile int i;
+  // for(i = 0; i < 1500000; i++) {}
+  // GPIOC -> ODR ^= GPIO_ODR_8 | GPIO_ODR_9; // Toggle either orange or green on
 
-  EXTI -> PR |= (1 << 0); // Selected trigger request occured
+  EXTI -> PR |= (1 << 0); // Selected trigger request occured, exit handler
 }
 
 /** System Clock Configuration
