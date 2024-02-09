@@ -135,9 +135,7 @@ void SysTick_Handler(void)
     GPIOC -> ODR ^= GPIO_ODR_7; 
     count = 0;
   }
-
   
-
   /* USER CODE END SysTick_IRQn 1 */
 }
 
