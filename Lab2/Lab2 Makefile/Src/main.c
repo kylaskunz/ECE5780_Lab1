@@ -73,12 +73,11 @@ int main(void)
 {
   SystemClock_Config();
 
-  RCC->AHBENR |= RCC_AHBENR_GPIOAEN;
-  RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
-  RCC->APB2ENR |= RCC_APB2ENR_SYSCFGCOMPEN;
+  RCC->AHBENR |= RCC_AHBENR_GPIOAEN; // For input button
+  RCC->AHBENR |= RCC_AHBENR_GPIOCEN; // For LEDS
+  RCC->APB2RSTR |= RCC_APB2RSTR_SYSCFGRST; // For SYSCFG
 
-  SYSCFG->EXTICR[0] &= ~((1 << 0)|(1 << 1) | (1 << 2));
-
+  // Set up LEDs
   GPIOC -> MODER |= (1 << 12); // PIN 6 (RED)
 	GPIOC -> MODER |= (1 << 14); // PIN 7 (BLLUE)
 	GPIOC -> MODER |= (1 << 16); // PIN 8 (ORANGE)
@@ -99,16 +98,24 @@ int main(void)
 	GPIOC -> PUPDR &= ~((1 << 16)|(1 << 17));
 	GPIOC -> PUPDR &= ~((1 << 18)|(1 << 19));
 
-  // Setting input pin PA0
+  // Set input pin PA0
   GPIOA -> MODER &= ~((1 << 0) | (1 << 1));
 	GPIOA -> OSPEEDR &= ~(1 << 0);
 	GPIOA -> PUPDR &= ~(1 << 0);
 	GPIOA -> PUPDR |= (1 << 1);
 
+  // Set EXTI
   EXTI -> IMR |= (1 << 0); // Unmask interrupt generation
   EXTI -> RTSR |= (1 << 0); // Rising edge trigger
 
-  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_SET); // Start PC9 high
+  // Set up SYSCFG
+  SYSCFG->EXTICR[0] |= SYSCFG_EXTICR1_EXTI0_PA; // &= ~((1 << 0)|(1 << 1) | (1 << 2));
+  NVIC_EnableIRQ(EXTI0_1_IRQn);
+  NVIC_SetPriority(EXTI0_1_IRQn, 1); // Set the EXTI priority to 1 (high-priority)
+
+
+  // Set Green LED to high
+  GPIOC -> ODR = GPIO_ODR_9;
 
   while (1) {
     HAL_Delay(500); // Delay 500ms
