@@ -109,7 +109,7 @@ int main(void)
   EXTI -> RTSR |= (1 << 0); // Rising edge trigger
 
   // Set up SYSCFG
-  SYSCFG->EXTICR[0] |= SYSCFG_EXTICR1_EXTI0_PA; // &= ~((1 << 0)|(1 << 1) | (1 << 2));
+  SYSCFG->EXTICR[0] &= ~((1 << 0) | (1 << 1) | (1 << 2)); // Set EXTI to PA0
   NVIC_EnableIRQ(EXTI0_1_IRQn);
   NVIC_SetPriority(EXTI0_1_IRQn, 1); // Set the EXTI priority to 1 (high-priority)
 
@@ -123,6 +123,11 @@ int main(void)
 
   }
   
+}
+
+void EXTI0_1_IRQHandler(void) {
+  GPIOC -> ODR ^= GPIO_ODR_8 | GPIO_ODR_9; // Toggle either orange or green on
+  EXTI -> PR |= (1 << 0); // Selected trigger request occured
 }
 
 /** System Clock Configuration
