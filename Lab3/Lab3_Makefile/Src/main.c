@@ -83,31 +83,12 @@ int main(void)
   // Set ARR for TIM2
   TIM2 -> ARR = 250;
 
-  // For part 3.2
-  // Set PSC to 79
-  TIM3 -> PSC = 79;
-
-  // Set ARR for TIM2
-  TIM3 -> ARR = 125;
-
-  TIM3 -> CCMR1 &= ~((1<<0) | (1<<1) | (1<<8) | (1<<9)); // Set channels to output
-  TIM3 -> CCMR1 |= ((1<<4) | (1<<5) | (1<<6)); // Set output channel to PWM Mode 2
-  TIM3 -> CCMR1 &= ~(1<<12); // Set channel 2 to PWM Mode 1
-  TIM3 -> CCMR1 |= ((1<<4) | (1<<5)); // Set channel 2 to PWM Mode 1
-  TIM3 -> CCMR1 |= ((1<<3) | (1<<11)); // Output compare preload
-
-  // Set CCER
-  TIM3 -> CCER |= ((1<<0) | (1<<4));
-
-  TIM3 -> CCR1 = 25;
-  TIM3 -> CCR2 = 25;
-
   // Enable the update interrupt
   TIM2 -> DIER |= (1<<0);
 
   NVIC_EnableIRQ(TIM2_IRQn);
 
-  // Set up LEDs
+  // Set green and orange LEDs
 	GPIOC -> MODER |= (1 << 16); // PIN 8 (ORANGE)
 	GPIOC -> MODER |= (1 << 18); // PIN 9 (GREEN)
 
@@ -120,11 +101,56 @@ int main(void)
 	GPIOC -> PUPDR &= ~((1 << 16)|(1 << 17));
 	GPIOC -> PUPDR &= ~((1 << 18)|(1 << 19));
 
+  // Set red and blue LEDs
+  GPIOC -> MODER |= (1 << 13); // PIN 6 (RED)
+	GPIOC -> MODER |= (1 << 15); // PIN 7 (BLUE)
+  GPIOC -> MODER &= ~(1 << 12); // PIN 6 (RED)
+	GPIOC -> MODER &= ~(1 << 14); // PIN 7 (BLUE)
+
+	GPIOC -> OTYPER &= ~(1 << 6);
+	GPIOC -> OTYPER &= ~(1 << 7);
+
+	GPIOC -> OSPEEDR &= ~(1 << 12);
+	GPIOC -> OSPEEDR &= ~(1 << 14);
+
+	GPIOC -> PUPDR &= ~((1 << 12)|(1 << 13));
+	GPIOC -> PUPDR &= ~((1 << 14)|(1 << 15));
+
   // Set Green LED to high
   GPIOC -> ODR = GPIO_ODR_9;
 
+  // For part 3.2
+  // Set PSC to 79
+  TIM3 -> PSC = 7;
+
+  // Set ARR for TIM2
+  TIM3 -> ARR = 1250;
+
+  TIM3 -> CCMR1 &= ~((1<<0) | (1<<1) | (1<<8) | (1<<9)); // Set channels to output
+  TIM3 -> CCMR1 |= ((1<<4) | (1<<5) | (1<<6)); // Set output channel to PWM Mode 2
+  TIM3 -> CCMR1 &= ~(1<<12); // Set channel 2 to PWM Mode 1
+  TIM3 -> CCMR1 |= ((1<<13) | (1<<14)); // Set channel 2 to PWM Mode 1
+  TIM3 -> CCMR1 |= ((1<<3) | (1<<11)); // Output compare preload
+
+  // Set CCER
+  TIM3 -> CCER |= ((1<<0) | (1<<4));
+
+  // Set CCR to 20%
+  TIM3 -> CCR1 = 25;
+  TIM3 -> CCR2 = 25;
+
+  GPIOC -> AFR[0] &= ~(1<<31);
+  GPIOC -> AFR[0] &= ~(1<<30);
+  GPIOC -> AFR[0] &= ~(1<<29);
+  GPIOC -> AFR[0] &= ~(1<<28);
+  GPIOC -> AFR[0] &= ~(1<<27);
+  GPIOC -> AFR[0] &= ~(1<<26);
+  GPIOC -> AFR[0] &= ~(1<<25);
+  GPIOC -> AFR[0] &= ~(1<<24);
+
   // Enable timer
   TIM2 -> CR1 |= (1<<0);
+  TIM3 -> CR1 |= (1<<0);
 
 }
 
