@@ -72,59 +72,66 @@ int main(void)
 {
   SystemClock_Config();
 
-  RCC->AHBENR |= RCC_AHBENR_GPIOAEN;
+  RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
   RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
+  // For part 3.2
+  RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
 
-  uint32_t position = 0x00U;
-  uint32_t iocurrent = 0x00U;
-  uint32_t temp = 0x00U;
+  // Set PSC to 7999
+  TIM2 -> PSC = 7999;
 
-  // Mode for PC6-PC9 and PA0
-  GPIOC->MODER &= ~(1 << 13);
-  GPIOC->MODER |= (1 << 12);
-  GPIOC->MODER |= (1 << 14);
-  GPIOC->MODER &= ~(1 << 15);
-  GPIOA->MODER &= ~(1 << 1);
-  GPIOA->MODER &= ~(1 << 0);
+  // Set ARR for TIM2
+  TIM2 -> ARR = 250;
 
+  // For part 3.2
+  // Set PSC to 79
+  TIM3 -> PSC = 79;
 
-  // Type for PC6-PC9 and PA0
-  GPIOC->OTYPER &= ~(1 << 6);
-  GPIOC->OTYPER &= ~(1 << 7);
+  // Set ARR for TIM2
+  TIM3 -> ARR = 125;
 
-  GPIOC->OSPEEDR &= ~(1 << 12);
-  GPIOC->OSPEEDR &= ~(1 << 13);
-  GPIOC->OSPEEDR &= ~(1 << 14);
-  GPIOC->OSPEEDR &= ~(1 << 15);
-  GPIOA->OSPEEDR &= ~(1 << 0);
+  TIM3 -> CCRM1 &= ~((1<<0) | (1<<1) | (1<<8) | (1<<9)); // Set channels to output
+  TIM3 -> CCRM1 |= ((1<<4) | (1<<5) | (1<<6)); // Set output channel to PWM Mode 2
+  TIM3 -> CCRM1 &= ~(1<<12); // Set channel 2 to PWM Mode 1
+  TIM3 -> CCRM1 |= ((1<<4) | (1<<5)); // Set channel 2 to PWM Mode 1
+  TIM3 -> CCRM1 |= ((1<<3) | (1<<11)); // Output compare preload
 
-  GPIOC->PUPDR &= ~(1 << 12);
-  GPIOC->PUPDR &= ~(1 << 13);
-  GPIOC->PUPDR &= ~(1 << 14);
-  GPIOC->PUPDR &= ~(1 << 15);
-  GPIOA->PUPDR |= (1 << 1);
-  GPIOA->PUPDR &= ~(1 << 0);
+  // Set CCER
+  TIM3 -> CCER |= ((1<<0) | (1<<4));
 
-  GPIOC->ODR |= (1 << 6);
-  GPIOC->ODR &= ~(1<<7);
+  TIM3 -> CCR1 = 25;
+  TIM3 -> CCR2 = 25;
 
-  uint32_t debouncer  = 0;
+  // Enable the update interrupt
+  TIM2 -> DIER |= (1<<0);
 
-  while (1)
-  {
-    debouncer = (debouncer  << 1);
+  NVIC_EnableIRQ(TIM2_IRQn);
 
-    if(GPIOA->IDR & 1){
-      debouncer |= 0x01;
-    }
-    if(debouncer == 0xFFFFFFFF){
-      if(GPIOA->IDR & 1){
-        HAL_Delay(100);
-        GPIOC->ODR ^= ((1 << 6) | (1<<7));
-      }
-    }
-  }
+  // Set up LEDs
+	GPIOC -> MODER |= (1 << 16); // PIN 8 (ORANGE)
+	GPIOC -> MODER |= (1 << 18); // PIN 9 (GREEN)
 
+	GPIOC -> OTYPER &= ~(1 << 8);
+	GPIOC -> OTYPER &= ~(1 << 9);
+
+	GPIOC -> OSPEEDR &= ~(1 << 16);
+	GPIOC -> OSPEEDR &= ~(1 << 18);
+
+	GPIOC -> PUPDR &= ~((1 << 16)|(1 << 17));
+	GPIOC -> PUPDR &= ~((1 << 18)|(1 << 19));
+
+  // Set Green LED to high
+  GPIOC -> ODR = GPIO_ODR_9;
+
+  // Enable timer
+  TIM2 -> CR1 |= (1<<0);
+
+}
+
+void TIM2_IRQHandler(void) { 
+  GPIOC -> ODR ^= GPIO_ODR_8 | GPIO_ODR_9; // Toggle either orange or green on
+
+  TIM2 -> SR &= ~(1<<0);
 }
 
 /** System Clock Configuration
