@@ -90,11 +90,11 @@ int main(void)
   // Set ARR for TIM2
   TIM3 -> ARR = 125;
 
-  TIM3 -> CCRM1 &= ~((1<<0) | (1<<1) | (1<<8) | (1<<9)); // Set channels to output
-  TIM3 -> CCRM1 |= ((1<<4) | (1<<5) | (1<<6)); // Set output channel to PWM Mode 2
-  TIM3 -> CCRM1 &= ~(1<<12); // Set channel 2 to PWM Mode 1
-  TIM3 -> CCRM1 |= ((1<<4) | (1<<5)); // Set channel 2 to PWM Mode 1
-  TIM3 -> CCRM1 |= ((1<<3) | (1<<11)); // Output compare preload
+  TIM3 -> CCMR1 &= ~((1<<0) | (1<<1) | (1<<8) | (1<<9)); // Set channels to output
+  TIM3 -> CCMR1 |= ((1<<4) | (1<<5) | (1<<6)); // Set output channel to PWM Mode 2
+  TIM3 -> CCMR1 &= ~(1<<12); // Set channel 2 to PWM Mode 1
+  TIM3 -> CCMR1 |= ((1<<4) | (1<<5)); // Set channel 2 to PWM Mode 1
+  TIM3 -> CCMR1 |= ((1<<3) | (1<<11)); // Output compare preload
 
   // Set CCER
   TIM3 -> CCER |= ((1<<0) | (1<<4));
