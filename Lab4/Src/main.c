@@ -43,6 +43,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32f0xx_hal.h"
+#include "stdio.h"
 void _Error_Handler(char * file, int line);
 
 /* USER CODE BEGIN Includes */
@@ -68,62 +69,109 @@ void SystemClock_Config(void);
 
 /* USER CODE END 0 */
 
+void setLED(void) {
+  switch(USART3->RDR) {
+    case 'r':
+      GPIOC -> ODR ^= GPIO_ODR_6;
+      break;
+    
+    case 'b':
+      GPIOC -> ODR ^= GPIO_ODR_7;
+      break;
+
+    case 'o':
+      GPIOC -> ODR ^= GPIO_ODR_8;
+      break;
+
+    case 'g':
+      GPIOC -> ODR ^= GPIO_ODR_9; 
+      break; 
+    
+    default:
+      transmitStr("Invalid selection. \n");
+  }
+}
+
+void transmitChar(char c) {
+  while(1) {
+    if((USART3->ISR & (1<<7)) == (1<<7)) {
+      break;
+    }
+  }
+  USART3->TDR = c;
+}
+
+void transmitStr(const char* str) {
+  while (*str != "\0") {
+    transmitChar(str);
+    str++;
+  }
+}
+
+
 int main(void)
 {
   SystemClock_Config();
+  HAL_Init();
 
-  RCC->AHBENR |= RCC_AHBENR_GPIOAEN;
   RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
+  RCC->AHBENR |= RCC_AHBENR_GPIOBEN;
+  RCC->APB1ENR |= RCC_APB1ENR_USART3EN;
 
-  uint32_t position = 0x00U;
-  uint32_t iocurrent = 0x00U;
-  uint32_t temp = 0x00U;
+  GPIOB-> MODER &= ~(1 << 20); // PB10
+  GPIOB -> MODER |= (1 << 21); // PB10
+  GPIOB -> MODER &= ~(1 << 22); // PB11
+  GPIOB -> MODER |= (1 << 23); // PB11
 
-  // Mode for PC6-PC9 and PA0
-  GPIOC->MODER &= ~(1 << 13);
-  GPIOC->MODER |= (1 << 12);
-  GPIOC->MODER |= (1 << 14);
-  GPIOC->MODER &= ~(1 << 15);
-  GPIOA->MODER &= ~(1 << 1);
-  GPIOA->MODER &= ~(1 << 0);
+  // Set up LEDs
+  GPIOC -> MODER |= (1 << 12); // PIN 6 (RED)
+	GPIOC -> MODER |= (1 << 14); // PIN 7 (BLLUE)
+	GPIOC -> MODER |= (1 << 16); // PIN 8 (ORANGE)
+	GPIOC -> MODER |= (1 << 18); // PIN 9 (GREEN)
 
+  GPIOC -> OTYPER &= ~(1 << 6);
+	GPIOC -> OTYPER &= ~(1 << 7);
+	GPIOC -> OTYPER &= ~(1 << 8);
+	GPIOC -> OTYPER &= ~(1 << 9);
 
-  // Type for PC6-PC9 and PA0
-  GPIOC->OTYPER &= ~(1 << 6);
-  GPIOC->OTYPER &= ~(1 << 7);
+	GPIOC -> OSPEEDR &= ~(1 << 12);
+	GPIOC -> OSPEEDR &= ~(1 << 14);
+	GPIOC -> OSPEEDR &= ~(1 << 16);
+	GPIOC -> OSPEEDR &= ~(1 << 18);
 
-  GPIOC->OSPEEDR &= ~(1 << 12);
-  GPIOC->OSPEEDR &= ~(1 << 13);
-  GPIOC->OSPEEDR &= ~(1 << 14);
-  GPIOC->OSPEEDR &= ~(1 << 15);
-  GPIOA->OSPEEDR &= ~(1 << 0);
+	GPIOC -> PUPDR &= ~((1 << 12)|(1 << 13));
+	GPIOC -> PUPDR &= ~((1 << 14)|(1 << 15));
+	GPIOC -> PUPDR &= ~((1 << 16)|(1 << 17));
+	GPIOC -> PUPDR &= ~((1 << 18)|(1 << 19));
 
-  GPIOC->PUPDR &= ~(1 << 12);
-  GPIOC->PUPDR &= ~(1 << 13);
-  GPIOC->PUPDR &= ~(1 << 14);
-  GPIOC->PUPDR &= ~(1 << 15);
-  GPIOA->PUPDR |= (1 << 1);
-  GPIOA->PUPDR &= ~(1 << 0);
+  // Setting the Baud Rate
+  USART3->BRR = HAL_RCC_GetHCLKFreq()/9600;
 
-  GPIOC->ODR |= (1 << 6);
-  GPIOC->ODR &= ~(1<<7);
+  // Setting AFR to 4
+  GPIOB -> AFR[1] |= (1<<10);
+  GPIOB -> AFR[1] |= (1<<14);
 
-  uint32_t debouncer  = 0;
+  // Setting TX and RX to 1
+  USART3->CR1 |= (1<<0);
+  USART3->CR1 |= (1<<2);
+  USART3->CR1 |= (1<<3);
 
-  while (1)
-  {
-    debouncer = (debouncer  << 1);
+  // Turn on all LEDS
+  GPIOC -> ODR |= GPIO_ODR_6;
+  GPIOC -> ODR |= GPIO_ODR_7;
+  GPIOC -> ODR |= GPIO_ODR_8;
+  GPIOC -> ODR |= GPIO_ODR_9;
 
-    if(GPIOA->IDR & 1){
-      debouncer |= 0x01;
-    }
-    if(debouncer == 0xFFFFFFFF){
-      if(GPIOA->IDR & 1){
-        HAL_Delay(100);
-        GPIOC->ODR ^= ((1 << 6) | (1<<7));
-      }
-    }
+  while(1) {
+    //while(~(USART3 -> ISR & 1<<5)) {}
+
+    HAL_Delay(200); // Delay 200ms
+    GPIOC -> ODR ^= GPIO_ODR_6;
+    transmitChar('k');
+
+    //setLED();
   }
+
 
 }
 
