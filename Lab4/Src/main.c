@@ -88,7 +88,7 @@ void setLED(void) {
       break; 
     
     default:
-      transmitStr("Invalid selection. \n");
+      transmitStr("Invalid selection.  ");
   }
 }
 
@@ -102,10 +102,16 @@ void transmitChar(char c) {
 }
 
 void transmitStr(const char* str) {
-  while (*str != "\0") {
-    transmitChar(str);
-    str++;
-  }
+  // while (*str != '\0') {
+  //   transmitChar(str);
+  //   str++;
+  // }
+
+  int i = 0; // Counter for indexing the array
+	  while (str[i] != '\0') { // Loop until null character is encountered
+      transmitChar(str[i]); // Transmit the current character
+      i++; // Move to the next character in the array
+    }
 }
 
 
@@ -163,13 +169,23 @@ int main(void)
   GPIOC -> ODR |= GPIO_ODR_9;
 
   while(1) {
-    //while(~(USART3 -> ISR & 1<<5)) {}
+    // HAL_Delay(1000); // Delay 200ms
+    // GPIOC -> ODR ^= GPIO_ODR_6;
 
-    HAL_Delay(200); // Delay 200ms
-    GPIOC -> ODR ^= GPIO_ODR_6;
-    transmitChar('k');
+    // // Testing transmit char
+    // transmitChar('k');
 
-    //setLED();
+    // // Testing transmit string
+    // const char* str = "hello ";
+    // transmitStr(str);
+
+    while(1) {
+      if((USART3->ISR & (1<<5)) == (1<<5)) {
+        break;
+    }
+  }
+
+    setLED();
   }
 
 
