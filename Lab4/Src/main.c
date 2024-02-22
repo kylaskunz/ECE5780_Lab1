@@ -44,6 +44,16 @@
 #include "main.h"
 #include "stm32f0xx_hal.h"
 #include "stdio.h"
+
+void setLED1(void);
+void setLED2(char color);
+void colorChoice(void);
+void transmitChar(char c);
+void transmitStr(const char* str);
+
+volatile int newDataFlag = 0;
+volatile char savedChar;
+
 void _Error_Handler(char * file, int line);
 
 /* USER CODE BEGIN Includes */
@@ -69,7 +79,7 @@ void SystemClock_Config(void);
 
 /* USER CODE END 0 */
 
-void setLED(void) {
+void setLED1(void) {
   switch(USART3->RDR) {
     case 'r':
       GPIOC -> ODR ^= GPIO_ODR_6;
@@ -88,7 +98,122 @@ void setLED(void) {
       break; 
     
     default:
-      transmitStr("Invalid selection.  ");
+      transmitStr("Invalid selection.\n\r");
+    break;
+  }
+}
+
+void setLED2(char color) {
+  switch(color) {
+    case 'r':
+      switch(savedChar) {
+        case '0':
+          GPIOC -> ODR &= ~ (1<<6);
+          transmitStr("Red light turned off. \n\r");
+        break;
+        case '1':
+          GPIOC -> ODR |= (1<<6);
+          transmitStr("Red light turned on. \n\r");
+        break;
+        case '2':
+          GPIOC -> ODR ^= (1<<6);
+          transmitStr("Red light toggled. \n\r");
+        break;
+        default:
+          transmitStr("Invalid selection. Please enter 0, 1, or 2. \n\r");
+        break;
+      }
+    break;
+    
+    case 'b':
+    switch(savedChar) {
+        case '0':
+          GPIOC -> ODR &= ~ (1<<7);
+          transmitStr("Blue light turned off. \n\r");
+        break;
+        case '1':
+          GPIOC -> ODR |= (1<<7);
+          transmitStr("Blue light turned on. \n\r");
+        break;
+        case '2':
+          GPIOC -> ODR ^= (1<<7);
+          transmitStr("Blue light toggled. \n\r");
+        break;
+        default:
+          transmitStr("Invalid selection. Please enter 0, 1, or 2. \n\r");
+        break;
+      }
+    break;
+
+    case 'o':
+    switch(savedChar) {
+        case '0':
+          GPIOC -> ODR &= ~ (1<<8);
+          transmitStr("Orange light turned off. \n\r");
+        break;
+        case '1':
+          GPIOC -> ODR |= (1<<8);
+          transmitStr("Orange light turned on. \n\r");
+        break;
+        case '2':
+          GPIOC -> ODR ^= (1<<8);
+          transmitStr("Orange light toggled. \n\r");
+        break;
+        default:
+          transmitStr("Invalid selection. Please enter 0, 1, or 2. \n\r");
+        break;
+      }
+    break;
+
+    case 'g':
+    switch(savedChar) {
+        case '0':
+          GPIOC -> ODR &= ~ (1<<9);
+          transmitStr("Green light turned off. \n\r");
+        break;
+        case '1':
+          GPIOC -> ODR |= (1<<9);
+          transmitStr("Green light turned on. \n\r");
+        break;
+        case '2':
+          GPIOC -> ODR ^= (1<<9);
+          transmitStr("Green light toggled. \n\r");
+        break;
+        default:
+          transmitStr("Invalid selection. Please enter 0, 1, or 2. \n\r");
+        break;
+      }
+    break;
+    
+    default:
+      transmitStr("Invalid selection. Please try again.\n\r");
+    break;
+  }
+}
+
+void colorChoice(void) {
+  char color;
+
+  switch(savedChar) {
+    case 'r':
+    case 'b':
+    case 'o':
+    case 'g':
+      color = savedChar;
+      transmitStr("CMD? (0, 1, 2)\n\r");
+      while(1) {
+        if(newDataFlag == 1) {
+          newDataFlag = 0;
+          break;
+        }
+      }
+
+      setLED2(color);
+    break;
+
+    default:
+      transmitStr("Invalid selection. Please enter r, b, o, or g. \n\r");
+    break;
   }
 }
 
@@ -102,16 +227,19 @@ void transmitChar(char c) {
 }
 
 void transmitStr(const char* str) {
-  // while (*str != '\0') {
-  //   transmitChar(str);
-  //   str++;
-  // }
-
-  int i = 0; // Counter for indexing the array
-	  while (str[i] != '\0') { // Loop until null character is encountered
-      transmitChar(str[i]); // Transmit the current character
-      i++; // Move to the next character in the array
+  int i = 0; 
+	  while (str[i] != '\0') { 
+      transmitChar(str[i]); 
+      i++; 
     }
+}
+
+void USART3_4_IRQHandler(void) {
+  if(newDataFlag == 0) {
+		newDataFlag = 1;
+		savedChar = USART3->RDR;
+  }
+
 }
 
 
@@ -157,6 +285,14 @@ int main(void)
   GPIOB -> AFR[1] |= (1<<10);
   GPIOB -> AFR[1] |= (1<<14);
 
+  // // For part 2
+  // // Enable the receive register not empty interrupt
+  // USART3->CR1 |= (1<<5); 
+
+  // // Enable and set the USART interrupt priority
+  // NVIC_EnableIRQ(USART3_4_IRQn);
+  // NVIC_SetPriority(USART3_4_IRQn, 3);
+
   // Setting TX and RX to 1
   USART3->CR1 |= (1<<0);
   USART3->CR1 |= (1<<2);
@@ -179,13 +315,26 @@ int main(void)
     // const char* str = "hello ";
     // transmitStr(str);
 
+    // Part 1
     while(1) {
       if((USART3->ISR & (1<<5)) == (1<<5)) {
         break;
+     }
     }
-  }
 
-    setLED();
+    setLED1();
+
+    // Part 2
+
+    // transmitStr("Color? (r, b, o, g)\n\r");
+    // while(1) {
+    //   if(newDataFlag == 1){
+    //     newDataFlag = 0;
+    //     break;
+    //   }
+    // }
+
+    // colorChoice();
   }
 
 
