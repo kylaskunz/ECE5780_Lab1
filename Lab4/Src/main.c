@@ -286,12 +286,12 @@ int main(void)
   GPIOB -> AFR[1] |= (1<<14);
 
   // // For part 2
-  // // Enable the receive register not empty interrupt
-  // USART3->CR1 |= (1<<5); 
+  // Enable the receive register not empty interrupt
+  USART3->CR1 |= (1<<5); 
 
-  // // Enable and set the USART interrupt priority
-  // NVIC_EnableIRQ(USART3_4_IRQn);
-  // NVIC_SetPriority(USART3_4_IRQn, 3);
+  // Enable and set the USART interrupt priority
+  NVIC_EnableIRQ(USART3_4_IRQn);
+  NVIC_SetPriority(USART3_4_IRQn, 3);
 
   // Setting TX and RX to 1
   USART3->CR1 |= (1<<0);
@@ -316,25 +316,25 @@ int main(void)
     // transmitStr(str);
 
     // Part 1
-    while(1) {
-      if((USART3->ISR & (1<<5)) == (1<<5)) {
-        break;
-     }
-    }
+    // while(1) {
+    //   if((USART3->ISR & (1<<5)) == (1<<5)) {
+    //     break;
+    //  }
+    // }
 
-    setLED1();
+    // setLED1();
 
     // Part 2
 
-    // transmitStr("Color? (r, b, o, g)\n\r");
-    // while(1) {
-    //   if(newDataFlag == 1){
-    //     newDataFlag = 0;
-    //     break;
-    //   }
-    // }
+    transmitStr("Color? (r, b, o, g)\n\r");
+    while(1) {
+      if(newDataFlag == 1){
+        newDataFlag = 0;
+        break;
+      }
+    }
 
-    // colorChoice();
+    colorChoice();
   }
 
 
