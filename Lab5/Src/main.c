@@ -43,7 +43,9 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32f0xx_hal.h"
+#include "stdlib.h"
 void _Error_Handler(char * file, int line);
+void setGyroscopeLEDS(int16_t x, int16_t y);
 
 /* USER CODE BEGIN Includes */
 
@@ -68,6 +70,48 @@ void SystemClock_Config(void);
 
 /* USER CODE END 0 */
 
+void setGyroscopeLEDS(int16_t x, int16_t y) {
+  int tolerance = 1500;
+
+  if((x > tolerance) | (x < -tolerance) | (y > tolerance) | (y < -tolerance)) {
+    if (abs(x) > abs(y)) {
+      if (x < 0) { // set orange
+        GPIOC->ODR |= (1 << 8);
+        GPIOC->ODR &= ~(1 << 6);
+        GPIOC->ODR &= ~(1 << 7);
+        GPIOC->ODR &= ~(1 << 9);
+      } else if (x > 0) { // set green
+        GPIOC->ODR |= (1 << 9);
+        GPIOC->ODR &= ~(1 << 6);
+        GPIOC->ODR &= ~(1 << 7);
+        GPIOC->ODR &= ~(1 << 8);
+      } else {
+        // Reset all LEDs
+        GPIOC->ODR &= ~((1 << 6) | (1 << 7) | (1 << 8) | (1 << 9));
+      }
+    } else {
+      if (y < 0) { // set blue
+        GPIOC->ODR |= (1 << 7);
+        GPIOC->ODR &= ~(1 << 6);
+        GPIOC->ODR &= ~(1 << 8);
+        GPIOC->ODR &= ~(1 << 9);
+      } else if (y > 0) { // set red
+        GPIOC->ODR |= (1 << 6);
+        GPIOC->ODR &= ~(1 << 7);
+        GPIOC->ODR &= ~(1 << 8);
+        GPIOC->ODR &= ~(1 << 9);
+      } else {
+        // Reset all LEDs
+        GPIOC->ODR &= ~((1 << 6) | (1 << 7) | (1 << 8) | (1 << 9));
+      }
+    }
+  } else {
+    // Reset all LEDs
+    GPIOC->ODR &= ~((1 << 6) | (1 << 7) | (1 << 8) | (1 << 9));
+  }
+}
+
+
 int main(void)
 {
   SystemClock_Config();
@@ -75,6 +119,27 @@ int main(void)
   RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
   RCC->AHBENR |= RCC_AHBENR_GPIOBEN;
   RCC->APB1ENR |= RCC_APB1ENR_I2C2EN;
+
+  // Set up LEDs
+  GPIOC -> MODER |= (1 << 12); // PIN 6 (RED)
+	GPIOC -> MODER |= (1 << 14); // PIN 7 (BLLUE)
+	GPIOC -> MODER |= (1 << 16); // PIN 8 (ORANGE)
+	GPIOC -> MODER |= (1 << 18); // PIN 9 (GREEN)
+
+  GPIOC -> OTYPER &= ~(1 << 6);
+	GPIOC -> OTYPER &= ~(1 << 7);
+	GPIOC -> OTYPER &= ~(1 << 8);
+	GPIOC -> OTYPER &= ~(1 << 9);
+
+	GPIOC -> OSPEEDR &= ~(1 << 12);
+	GPIOC -> OSPEEDR &= ~(1 << 14);
+	GPIOC -> OSPEEDR &= ~(1 << 16);
+	GPIOC -> OSPEEDR &= ~(1 << 18);
+
+	GPIOC -> PUPDR &= ~((1 << 12)|(1 << 13));
+	GPIOC -> PUPDR &= ~((1 << 14)|(1 << 15));
+	GPIOC -> PUPDR &= ~((1 << 16)|(1 << 17));
+	GPIOC -> PUPDR &= ~((1 << 18)|(1 << 19));
 
   GPIOB -> MODER |= (1 << 23); // PB11 Alternate function
   GPIOB -> MODER &= ~(1 << 22); // PB11 Alternate function
@@ -120,56 +185,169 @@ int main(void)
   I2C2 -> CR1 |= (1 << 0);
 
   
-  // Setting slave address
+  // Setting slave address to write 2 bytes
   I2C2 -> CR2 |= (0x69 << 1);
-  I2C2 -> CR2 |= (1 << 16);
+  I2C2 -> CR2 |= (1 << 17);
+	I2C2 -> CR2 &= ~(1 << 16);
   I2C2 -> CR2 &= ~(1 << 10);
   I2C2 -> CR2 |= (1 << 13);
 
   // Wait for TXIS and NAXKF
   while (1){
-			if(I2C2->ISR & (1<<1)){
-			break;
-			}
-			if(I2C2->ISR & (1<<4)){
-			}
-		}
-		I2C2->TXDR |= 0x0f;
-
-	while(1){
-		if(I2C2->ISR & (1<<6)){
-			break;
-		}
+    if(I2C2->ISR & (1<<1)){ // TXIS
+      break;
+    }
+    if(I2C2->ISR & (1<<4)){ // NACKF
+    }
   }
 
-  // Setting slave address
-  I2C2 -> CR2 |= (0x69 << 1);
-  I2C2 -> CR2 |= (1 << 16);
-  I2C2 -> CR2 |= I2C_CR2_RD_WRN;
-  I2C2 -> CR2 |= I2C_CR2_START;
+  // I2C2->TXDR |= 0x0f; // Who am I register
+  I2C2->TXDR = 0x20; // Control Register 1
 
-  // Wait for RXNE
+  // Wait for TXIS and NAXKF
   while (1){
-			if(I2C2->ISR & (1<<2)){
-			 break;
-			}
-			if(I2C2->ISR & (1<<4)){
-			}
-		}
-		
-  // Wait for transfer complete
-	while(1){
-		if(I2C2->ISR & (1<<6)){
-			break;
-		}
-	}
-
-  if(I2C2 -> RXDR == 0xD3) {
-    I2C2 -> CR2 |= (1 << 14);
+    if(I2C2->ISR & (1<<1)){ // TXIS
+      break;
+    }
+    if(I2C2->ISR & (1<<4)){ // NACKF
+    }
   }
 
-  while(1) {}
+  I2C2->TXDR = 0x0B; // Set PD to 1, enable x, y
+
+  while(1){
+    if(I2C2->ISR & (1<<6)){ // Transfer Complete
+      break;
+    }
+  }
+
+  // Reading X and Y values
+
+  while(1) { // Loop to read gyro data
   
+    // Initial write to tell where to read the values from 
+    I2C2 -> CR2 |= (0x69 << 1); // slave address
+    I2C2 -> CR2 |= (1 << 16); // write 1 value
+	  I2C2 -> CR2 &= ~(1 << 17);
+    I2C2 -> CR2 &= ~(1 << 10); // write
+    I2C2 -> CR2 |= (1 << 13); //start
+
+    while (1){
+      if(I2C2->ISR & (1<<1)){ // TXIS
+        break;
+      }
+      if(I2C2->ISR & (1<<4)){ // NACKF
+      }
+    }
+
+    I2C2->TXDR = 0xA8; // Data for x-axis
+
+    while(1){ 
+      if(I2C2->ISR & (1<<6)){ // Transfer Complete
+        break;
+      }
+    }
+
+    // Setting slave address to read 2 bytes for x
+    I2C2 -> CR2 |= (0x69 << 1); // slave address
+    I2C2 -> CR2 |= (1 << 17); // read 2 bytes
+	  I2C2 -> CR2 &= ~(1 << 16);
+    I2C2 -> CR2 |= I2C_CR2_RD_WRN; // read
+    I2C2 -> CR2 |= I2C_CR2_START; // start
+
+    char xhi;
+    char xlo;
+    int16_t x;
+ 
+    // Wait for RXNE
+    while (1){
+      if(I2C2->ISR & (1<<2)){ // RXNE
+        xlo = I2C2 -> RXDR;
+        break;
+      }
+      if(I2C2->ISR & (1<<4)){ // NACKF
+      }
+    }
+    while (1){
+      if(I2C2->ISR & (1<<2)){ // RXNE
+        xhi = I2C2 -> RXDR;
+        break;
+      }
+      if(I2C2->ISR & (1<<4)){ // NACKF
+      }
+    }
+
+    x = ((xhi << 8) | xlo);
+
+    // Read 16 bits from y
+    I2C2 -> CR2 |= (0x69 << 1); // Read 16 bits from y
+    I2C2 -> CR2 |= (1 << 16);
+	  I2C2 -> CR2 &= ~(1 << 17);
+    I2C2 -> CR2 &= ~(1 << 10);
+    I2C2 -> CR2 |= (1 << 13);
+
+    while (1){
+      if(I2C2->ISR & (1<<1)){ // TXIS
+        break;
+      }
+      if(I2C2->ISR & (1<<4)){ // NACKF
+      }
+    }
+
+    I2C2->TXDR = 0xAA; // Data for y-axis
+
+    while(1){
+      if(I2C2->ISR & (1<<6)){  // Transfer Complete
+        break;
+      }
+    }
+
+    // Initial write to tell where to read the values from 
+    I2C2 -> CR2 |= (0x69 << 1);
+    I2C2 -> CR2 |= (1 << 17);
+	  I2C2 -> CR2 &= ~(1 << 16);
+    I2C2 -> CR2 |= I2C_CR2_RD_WRN;
+    I2C2 -> CR2 |= I2C_CR2_START;
+
+    char yhi;
+    char ylo;
+    int16_t y;
+
+    // Wait for RXNE
+    while (1){
+      if(I2C2->ISR & (1<<2)){ // RXNE
+        ylo = I2C2 -> RXDR;
+        break;
+      }
+      if(I2C2->ISR & (1<<4)){ // NACKF
+      }
+    }
+
+    while (1){
+      if(I2C2->ISR & (1<<2)){ // RXNE
+        yhi = I2C2 -> RXDR;
+        break;
+      }
+      if(I2C2->ISR & (1<<4)){ // NACKF
+      }
+    }
+
+    y = ((yhi << 8) | ylo);
+      
+    // Wait for transfer complete
+    // while(1){
+    //   if(I2C2->ISR & (1<<6)){  // Transfer Complete
+    //     break;
+    //   }
+    // }
+
+    I2C2 -> CR2 |= (1 << 14); // Stop
+
+    // set gyroscope leds
+    setGyroscopeLEDS(x, y);
+
+    HAL_Delay(100);
+  }
 }
 
 /** System Clock Configuration
